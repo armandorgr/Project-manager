@@ -1,60 +1,65 @@
 package com.example.demo.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-
+import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "refresh_tokens")
+@Entity
+@Table(name = "refresh_tokens")
 public class RefreshToken {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Indexed(unique = true)
+    @Column(unique = true)
     private String token;
 
+    @Column(name = "expiry_date")
     private Instant expiryDate;
-    private String userId;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
 
     public RefreshToken() {
     }
 
-    public RefreshToken(String token, Instant expiryDate, String userId) {
+    public RefreshToken(String token, Instant expiryDate, User userId) {
         this.token = token;
         this.expiryDate = expiryDate;
-        this.userId = userId;
+        this.user = userId;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getToken() {
         return token;
     }
 
-    public void setToken(String token) {
-        this.token = token;
-    }
-
     public Instant getExpiryDate() {
         return expiryDate;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public void setExpiryDate(Instant expiryDate) {
         this.expiryDate = expiryDate;
     }
 
-    public String getUserId() {
-        return userId;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
 }

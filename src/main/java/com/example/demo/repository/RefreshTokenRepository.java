@@ -1,24 +1,16 @@
 package com.example.demo.repository;
 
 import com.example.demo.model.RefreshToken;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface RefreshTokenRepository extends MongoRepository<RefreshToken, String> {
-
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByToken(String token);
-
-    @Query("{ 'userId': ?0 }")
-    List<RefreshToken> findByUserId(String userId);
-
-    void deleteByUserId(String userId);
-
-    @Query(value = "{ 'expiryDate': { $lt: ?0 } }", delete = true)
-    void deleteExpiredTokens(Instant now);
+    @Transactional
+    void deleteByUserId(UUID userId);
 }

@@ -1,28 +1,29 @@
 package com.example.demo.model;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.DocumentReference;
-import org.springframework.data.mongodb.core.mapping.FieldType;
-import org.springframework.data.mongodb.core.mapping.MongoId;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
-@AllArgsConstructor
-@Document(collection = "users")
+@Entity
+@Table(name = "users")
 public class User implements UserDetails {
-    @MongoId(FieldType.OBJECT_ID)
-    private String id;
-    @Indexed(unique = true)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(unique = true, nullable = false)
     private String username;
+
+    @Column(nullable = false)
     private String password;
 
-    @DocumentReference(lazy = true, lookup = "{ 'userId' : ?#{#self._id} }")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
     public User() {
@@ -48,7 +49,7 @@ public class User implements UserDetails {
         return this.username;
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -70,5 +71,9 @@ public class User implements UserDetails {
 
     public String toString() {
         return "User(id=" + this.getId() + ", username=" + this.getUsername() + ", password=" + this.getPassword() + ")";
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 }

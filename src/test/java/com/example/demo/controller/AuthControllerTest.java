@@ -193,7 +193,6 @@ public class AuthControllerTest {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-
         when(clock.instant()).thenReturn(NOW.plus(TOKEN_EXPIRATION_TIME));
         //User makes request to protected path
         ResponseEntity<String> protectedResponse = restTemplate.exchange(

@@ -77,10 +77,12 @@ public class AuthController {
         );
         final User userDetails = (User) authentication.getPrincipal();
         final String token = jwtTokenUtil.generateToken(userDetails);
-        String userId = userDetails.getId();
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userId);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails);
         ApiResponse<JwtResponse> response = new ApiResponse<>("Success", "Inicio de sesión correcto", new JwtResponse(token, refreshToken.getToken()), null);
         this.logger.debug(String.format("Inicio de sesión correcto por usuario con username: %s", request.getUsername()));
+        if(blacklistService.isTokenBlackListed(token)){
+            blacklistService.unBlackListToken(token);
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -108,9 +110,9 @@ public class AuthController {
         this.logger.debug(String.format("Intento de refresco de token por usuario con token: %s", request.getRefreshToken()));
         RefreshToken refreshToken = refreshTokenService.findByToken(request.getRefreshToken()).orElseThrow(() -> new TokenRefreshException("Token de refresco inválido"));
         refreshToken = refreshTokenService.verifyExpiration(refreshToken);
-        User user = (User) userDetailsService.loadUserById(refreshToken.getUserId());
+        User user = (User) userDetailsService.loadUserById(refreshToken.getUser().getId());
         String newAccessToken = jwtTokenUtil.generateToken(user);
-        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
         this.logger.debug(String.format("Token refrescado"));
         return ResponseEntity.ok(new ApiResponse<>("Success", "Token refreshed successfully", new JwtResponse(newAccessToken, newRefreshToken.getToken()), null));
     }

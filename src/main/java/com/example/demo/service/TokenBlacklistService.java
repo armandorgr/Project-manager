@@ -1,51 +1,36 @@
 package com.example.demo.service;
 
-import org.bson.Document;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.data.mongodb.core.index.IndexDefinition;
-import org.springframework.data.mongodb.core.index.IndexOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import com.example.demo.model.BlackListedToken;
+import com.example.demo.repository.BlackListedTokenRepository;
 import org.springframework.stereotype.Service;
-
-import java.time.Duration;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 @Service
 public class TokenBlacklistService {
-    private final MongoTemplate mongoTemplate;
-    private static final String COLLECTION = "blacklisted_tokens";
+    private final BlackListedTokenRepository repository;
 
-    public TokenBlacklistService(MongoTemplate mongoTemplate){
-        this.mongoTemplate = mongoTemplate;
+    public TokenBlacklistService(BlackListedTokenRepository repository) {
+        this.repository = repository;
     }
 
-    public void blacklistToken(String token, long ttlMillis){
-        Document tokenDoc = new Document("_id", token)
-                .append("expiry", Instant.now().plusMillis(ttlMillis));
-
-        mongoTemplate.insert(tokenDoc, COLLECTION);
-
-        createTTLIndex();
+    @Transactional
+    public void blacklistToken(String token, long ttlMillis) {
+        Instant expiry = Instant.now().plusMillis(ttlMillis);
+        repository.save(new BlackListedToken(token, expiry));
     }
 
-    public boolean isTokenBlackListed(String token){
-        return mongoTemplate.exists(
-                Query.query(Criteria.where("_id").is(token)),
-                COLLECTION
-        );
+    public void unBlackListToken(String token){
+        repository.deleteByToken(token);
     }
 
-    private void createTTLIndex(){
-        if(mongoTemplate.indexOps(COLLECTION).getIndexInfo().stream().noneMatch(index -> "expiry_ttl_index".equals(index.getName()))){
-            IndexOperations indexOps = mongoTemplate.indexOps(COLLECTION);
-            IndexDefinition index = new Index()
-                    .named("expiry_ttl_index")
-                    .on("expiry", Sort.Direction.ASC)
-                    .expire(Duration.ofSeconds(0));
-            indexOps.createIndex(index);
-        }
+    public boolean isTokenBlackListed(String token) {
+        cleanupExpiredTokens();
+        return repository.existsByTokenAndExpiryAfter(token, Instant.now());
+    }
+
+    @Transactional
+    public void cleanupExpiredTokens() {
+        repository.deleterExpiredTokens(Instant.now());
     }
 }
