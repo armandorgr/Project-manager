@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.controller.requests.LoginRequest;
 import com.example.demo.controller.requests.LogoutRequest;
+import com.example.demo.controller.requests.RegisterRequest;
 import com.example.demo.controller.requests.TokenRefreshRequest;
 import com.example.demo.controller.responses.ApiResponse;
 import com.example.demo.controller.responses.JwtResponse;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.when;
 public class AuthControllerTest {
     private final String USERNAME = "user";
     private final String PASSWORD = "1234";
+    private final String EMAIL = "email@gmail.com";
     private final String TEST_USER = "test_user";
     private final String TEST_PASSWORD = "test_password";
     private static final Instant NOW = Instant.now();
@@ -52,8 +54,8 @@ public class AuthControllerTest {
 
     @Test
     void register_validRequest_thenLogin_ShouldReturn200() {
-        HttpEntity<LoginRequest> request = new HttpEntity<>(
-                new LoginRequest(USERNAME, PASSWORD)
+        HttpEntity<RegisterRequest> request = new HttpEntity<>(
+                new RegisterRequest(USERNAME, EMAIL, PASSWORD)
         );
         //User registers
         ResponseEntity<ApiResponse<String>> registerResponse = restTemplate.exchange(

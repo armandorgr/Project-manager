@@ -19,8 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepo = userRepo;
     }
 
-    public UserDetails registerUser(String username, String password) {
-        return this.userRepo.save(new User(username, password));
+    public UserDetails registerUser(String username, String password, String email) {
+        return this.userRepo.save(new User(username, password, email));
     }
 
     public UserDetails loadUserById(UUID id){

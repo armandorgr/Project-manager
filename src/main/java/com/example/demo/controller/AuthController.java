@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.controller.requests.RegisterRequest;
 import com.example.demo.service.CustomUserDetailsService;
 import com.example.demo.service.TokenBlacklistService;
 import com.example.demo.controller.requests.LoginRequest;
@@ -53,16 +54,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register(@RequestBody @Valid LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<String>> register(@RequestBody @Valid RegisterRequest request) {
         try {
-            this.logger.debug(String.format("Intento de registro de usuario con username: %s", loginRequest.getUsername()));
-            userDetailsService.registerUser(loginRequest.getUsername(), this.passwordEncoder.encode(loginRequest.getPassword()));
+            this.logger.debug(String.format("Intento de registro de usuario con username: %s", request.getUsername()));
+            userDetailsService.registerUser(request.getUsername(), this.passwordEncoder.encode(request.getPassword()), request.getEmail());
         } catch (DuplicateKeyException e) {
             this.logger.debug(String.format("Excepcion de tipo %s", e.getClass()));
             throw e;
         }
         ApiResponse<String> response = new ApiResponse<>("Success", "Usuario registrado correctamente", null, null);
-        this.logger.debug(String.format("Registro correcto de usuario con username: %s", loginRequest.getUsername()));
+        this.logger.debug(String.format("Registro correcto de usuario con username: %s", request.getUsername()));
         return ResponseEntity.ok(response);
     }
 
