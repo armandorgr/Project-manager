@@ -19,12 +19,29 @@ public class UserProjectId implements Serializable {
         this.projectId = projectId;
     }
 
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public UUID getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserProjectId that = (UserProjectId) o;
-        return Objects.equals(userId, that.userId) && Objects.equals(projectId, that.projectId);
+        return Objects.equals(userId, that.userId) &&
+                Objects.equals(projectId, that.projectId);
     }
 
     @Override

@@ -5,7 +5,6 @@ import com.example.demo.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
@@ -13,12 +12,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DataMongoTest
 @ActiveProfiles("test")
 public class UserRepositoryTest {
     @Autowired
     private UserRepository userRepo;
-
 
     @Test
     void shouldFindByUserName(){
