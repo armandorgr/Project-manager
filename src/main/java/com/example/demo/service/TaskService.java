@@ -1,0 +1,40 @@
+package com.example.demo.service;
+
+import com.example.demo.model.Comment;
+import com.example.demo.model.Project;
+import com.example.demo.model.Task;
+import com.example.demo.model.User;
+import com.example.demo.repository.CommentRepository;
+import com.example.demo.repository.TaskRepository;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class TaskService {
+    private final TaskRepository taskRepository;
+
+    public TaskService(TaskRepository taskRepository){
+        this.taskRepository = taskRepository;
+    }
+
+    public List<Task> getAllTasksByUser(User user){
+        return taskRepository.findAllByUser(user);
+    }
+
+    public List<Task> getAllTasksByProject(Project project){
+        return taskRepository.findAllByProject(project);
+    }
+
+    public Task saveTask(Task task){
+        return taskRepository.save(task);
+    }
+
+    public void deleteTask(Task task){
+        taskRepository.delete(task);
+    }
+
+    public void deleteTask(UUID taskId){
+        taskRepository.deleteById(taskId);
+    }
+}
