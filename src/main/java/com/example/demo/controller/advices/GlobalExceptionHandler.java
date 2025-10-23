@@ -1,6 +1,8 @@
 package com.example.demo.controller.advices;
 
 import com.example.demo.controller.responses.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,7 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler{
-
+    private final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<ApiResponse<String>> handleDuplicateKey(DuplicateKeyException ex){
         ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);

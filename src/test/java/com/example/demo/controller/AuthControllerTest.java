@@ -3,7 +3,6 @@ package com.example.demo.controller;
 import com.example.demo.controller.requests.LoginRequest;
 import com.example.demo.controller.requests.RegisterRequest;
 import com.example.demo.controller.responses.ApiResponse;
-import com.example.demo.controller.responses.JwtResponse;
 import com.example.demo.repository.UserRepository;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.*;
@@ -187,7 +186,7 @@ class AuthControllerTest {
         var refreshResponse = restTemplate.exchange(
                 "/api/auth/refresh", HttpMethod.POST,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {}
+                new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
 
         assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -212,7 +211,7 @@ class AuthControllerTest {
         var badResponse = restTemplate.exchange(
                 "/api/auth/login", HttpMethod.POST,
                 new HttpEntity<>(new HttpHeaders()),
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {}
+                new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
 
         assertThat(badResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

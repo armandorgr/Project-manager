@@ -5,7 +5,6 @@ import com.example.demo.controller.requests.*;
 import com.example.demo.service.CustomUserDetailsService;
 import com.example.demo.service.TokenBlacklistService;
 import com.example.demo.controller.responses.ApiResponse;
-import com.example.demo.controller.responses.JwtResponse;
 import com.example.demo.model.RefreshToken;
 import com.example.demo.model.User;
 import com.example.demo.security.JwtTokenUtil;
@@ -59,21 +58,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register(@RequestBody @Valid RegisterRequest request) {
+    public ResponseEntity<ApiResponse<RegisterRequest>> register(@RequestBody @Valid RegisterRequest request) {
         try {
             this.logger.debug(String.format("Intento de registro de usuario con username: %s", request.getUsername()));
-            userDetailsService.registerUser(request.getUsername(), this.passwordEncoder.encode(request.getPassword()), request.getEmail());
+            User user = (User) userDetailsService.registerUser(request.getUsername(), this.passwordEncoder.encode(request.getPassword()), request.getEmail());
+            ApiResponse<RegisterRequest> response = new ApiResponse<>("Success", "Usuario registrado correctamente", request, null);
+            this.logger.debug(String.format("Registro correcto de usuario con username: %s", request.getUsername()));
+            return ResponseEntity.ok(response);
         } catch (DuplicateKeyException e) {
             this.logger.debug(String.format("Excepcion de tipo %s", e.getClass()));
             throw e;
         }
-        ApiResponse<String> response = new ApiResponse<>("Success", "Usuario registrado correctamente", null, null);
-        this.logger.debug(String.format("Registro correcto de usuario con username: %s", request.getUsername()));
-        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<JwtResponse>> login(@RequestBody @Valid LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<String>> login(@RequestBody @Valid LoginRequest request, HttpServletResponse response) {
         this.logger.debug(String.format("Intento de inicio de sesión por usuario con username: %s", request.getUsername()));
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -84,7 +83,7 @@ public class AuthController {
         final User userDetails = (User) authentication.getPrincipal();
         final String token = jwtTokenUtil.generateToken(userDetails);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails);
-        ApiResponse<JwtResponse> apiResponse = new ApiResponse<>("Success", "Inicio de sesión correcto", new JwtResponse(token, refreshToken.getToken()), null);
+        ApiResponse<String> apiResponse = new ApiResponse<>("Success", "Inicio de sesión correcto", null, null);
         this.logger.debug(String.format("Inicio de sesión correcto por usuario con username: %s", request.getUsername()));
         if (blacklistService.isTokenBlackListed(token)) {
             blacklistService.unBlackListToken(token);
@@ -115,7 +114,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<JwtResponse>> refreshToken(@Tokens TokensObj tokens, HttpServletResponse response) {
+    public ResponseEntity<ApiResponse<String>> refreshToken(@Tokens TokensObj tokens, HttpServletResponse response) {
         this.logger.debug(String.format("Intento de refresco de token por usuario con token: %s", tokens.getRefresh()));
         RefreshToken refreshToken = refreshTokenService.findByToken(tokens.getRefresh()).orElseThrow(() -> new TokenRefreshException("Token de refresco inválido"));
         refreshToken = refreshTokenService.verifyExpiration(refreshToken);
@@ -123,8 +122,8 @@ public class AuthController {
         String newAccessToken = jwtTokenUtil.generateToken(user);
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
         addAuthCookies(response, newAccessToken, newRefreshToken.getToken(), false);
-        this.logger.debug(String.format("Token refrescado"));
-        return ResponseEntity.ok(new ApiResponse<>("Success", "Token refreshed successfully", new JwtResponse(newAccessToken, newRefreshToken.getToken()), null));
+        this.logger.debug("Token refrescado");
+        return ResponseEntity.ok(new ApiResponse<>("Success", "Token refreshed successfully", null, null));
     }
 
     private void addAuthCookies(HttpServletResponse response, String accessToken, String refreshToken, Boolean revoke) {

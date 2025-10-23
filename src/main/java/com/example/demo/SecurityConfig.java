@@ -1,8 +1,8 @@
 package com.example.demo;
 
+import com.example.demo.security.CustomAuthenticationEntryPoint;
 import com.example.demo.security.CustomAuthenticationProvider;
 import com.example.demo.security.JwtAuthFilter;
-import com.example.demo.security.JwtTokenUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,22 +32,27 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAuthenticationEntryPoint customEntryPoint) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/logout").authenticated()
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/refresh"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                ).exceptionHandling(ex -> ex.authenticationEntryPoint(customEntryPoint))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -71,7 +76,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(
             CustomAuthenticationProvider customAuthenticationProvider
-    ){
+    ) {
         return new ProviderManager(customAuthenticationProvider);
     }
 }

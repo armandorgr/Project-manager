@@ -11,6 +11,6 @@ public class ProtectedController {
 
     @GetMapping("/hello")
     public String hello(Authentication authentication) {
-        return "Hola " + authentication.getName() + ", tienes acceso a este recurso protegido!";
+        return "Hola " + authentication.getPrincipal() + ", tienes acceso a este recurso protegido!";
     }
 }
