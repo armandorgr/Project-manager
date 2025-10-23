@@ -1,15 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.controller.requests.LoginRequest;
-import com.example.demo.controller.requests.LogoutRequest;
 import com.example.demo.controller.requests.RegisterRequest;
-import com.example.demo.controller.requests.TokenRefreshRequest;
 import com.example.demo.controller.responses.ApiResponse;
 import com.example.demo.controller.responses.JwtResponse;
 import com.example.demo.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import io.github.cdimascio.dotenv.Dotenv;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -17,25 +14,26 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-public class AuthControllerTest {
-    private final String USERNAME = "user";
-    private final String PASSWORD = "1234";
-    private final String EMAIL = "email@gmail.com";
-    private final String TEST_USER = "test_user";
-    private final String TEST_PASSWORD = "test_password";
+class AuthControllerTest {
+
+    private static final String USERNAME = "user";
+    private static final String TEST_USER = "test_user";
+    private static final String TEST_PASSWORD = "test_password";
+    private static final String EMAIL = "email@gmail.com";
     private static final Instant NOW = Instant.now();
-    private static final Duration TOKEN_EXPIRATION_TIME = Duration.ofSeconds(600);
+    private static final Duration TOKEN_EXPIRATION_TIME = Duration.ofSeconds(90);
 
     @MockitoBean
     private Clock clock;
@@ -46,263 +44,210 @@ public class AuthControllerTest {
     @Autowired
     private UserRepository userRepo;
 
+    @BeforeAll
+    static void env(){
+        Dotenv dotenv = Dotenv.configure().filename(".env.test").load();
+        dotenv.entries().forEach((e)->System.setProperty(e.getKey(),e.getValue()));
+    }
+
     @BeforeEach
     void setUp() {
         when(clock.instant()).thenReturn(NOW);
     }
 
+    @AfterEach
+    void cleanUp() {
+        userRepo.findByUsername(USERNAME)
+                .ifPresent(userRepo::delete);
+    }
+
+    // ------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------
+
+    private <T> ResponseEntity<ApiResponse<T>> postForApiResponse(String url, Object body) {
+        return restTemplate.exchange(
+                url, HttpMethod.POST,
+                new HttpEntity<>(body),
+                new ParameterizedTypeReference<>() {}
+        );
+    }
+
+    private HttpHeaders buildCookieHeaders(List<String> cookies) {
+        HttpHeaders headers = new HttpHeaders();
+        cookies.forEach(cookie -> headers.add(HttpHeaders.COOKIE, cookie));
+        return headers;
+    }
+
+    private List<String> extractCookies(ResponseEntity<?> response) {
+        List<String> cookies = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+        assertThat(cookies)
+                .as("Response should contain cookies")
+                .isNotEmpty();
+        return cookies;
+    }
+
+    // ------------------------------------------------------
+    // Tests
+    // ------------------------------------------------------
+
     @Test
-    void register_validRequest_thenLogin_ShouldReturn200() {
-        HttpEntity<RegisterRequest> request = new HttpEntity<>(
-                new RegisterRequest(USERNAME, EMAIL, PASSWORD)
-        );
-        //User registers
-        ResponseEntity<ApiResponse<String>> registerResponse = restTemplate.exchange(
-                "/api/auth/register",
-                HttpMethod.POST,
-                request,
-                new ParameterizedTypeReference<ApiResponse<String>>() {
-                }
-        );
-        assertThat(registerResponse).isNotNull();
+    void register_validRequest_thenLogin_shouldReturn200() {
+        // --- Register user ---
+        var registerRequest = new RegisterRequest(USERNAME, EMAIL, "1234");
+        var registerResponse = postForApiResponse("/api/auth/register", registerRequest);
+
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        ApiResponse<String> body = registerResponse.getBody();
+        var registerBody = registerResponse.getBody();
+        assertThat(registerBody).isNotNull();
+        assertThat(registerBody.getStatus()).isEqualTo("Success");
+        assertThat(registerBody.getMessage()).isEqualTo("Usuario registrado correctamente");
 
-        assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo("Success");
-        assertThat(body.getMessage()).isEqualTo("Usuario registrado correctamente");
+        // --- Login user ---
+        var loginRequest = new LoginRequest(USERNAME, "1234");
+        var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
 
-        //User logs in
-        HttpEntity<LoginRequest> loginRequest = new HttpEntity<>(
-                new LoginRequest(USERNAME, PASSWORD)
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        var cookies = extractCookies(loginResponse);
+
+        // --- Access protected endpoint ---
+        HttpHeaders headers = buildCookieHeaders(cookies);
+        var protectedResponse = restTemplate.exchange(
+                "/api/protected/hello", HttpMethod.GET,
+                new HttpEntity<>(headers), String.class
         );
 
-        ResponseEntity<ApiResponse<JwtResponse>> authResponse = restTemplate.exchange(
-                "/api/auth/login",
-                HttpMethod.POST,
-                loginRequest,
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
-        );
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        ApiResponse<JwtResponse> response = authResponse.getBody();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("Success");
-
-        JwtResponse jwtResponse = response.getData();
-        String accessToken = jwtResponse.accessToken();
-        String refreshToken = jwtResponse.refreshToken();
-
-        assertThat(jwtResponse).isNotNull();
-        assertThat(accessToken).isNotNull();
-        assertThat(refreshToken).isNotNull();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-
-        //User makes request to protected path
-        ResponseEntity<String> protectedResponse = restTemplate.exchange(
-                "/api/protected/hello",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
-        );
-
-        assertThat(protectedResponse).isNotNull();
         assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
+    @Sql("/data.sql")
     @Test
     void login_thenLogout_shouldReturn200() {
-        //User logs in
-        HttpEntity<LoginRequest> loginRequest = new HttpEntity<>(
-                new LoginRequest(TEST_USER, TEST_PASSWORD)
+        // --- Login user ---
+        var loginRequest = new LoginRequest(TEST_USER, TEST_PASSWORD);
+        var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
+
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        var cookies = extractCookies(loginResponse);
+        assertThat(cookies).hasSize(2);
+
+        var body = loginResponse.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo("Success");
+
+        // --- Logout user ---
+        HttpHeaders headers = buildCookieHeaders(cookies);
+        var logoutResponse = restTemplate.exchange(
+                "/api/auth/logout", HttpMethod.POST,
+                new HttpEntity<>(headers),
+                new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
 
-        ResponseEntity<ApiResponse<JwtResponse>> authResponse = restTemplate.exchange(
-                "/api/auth/login",
-                HttpMethod.POST,
-                loginRequest,
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
-        );
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        ApiResponse<JwtResponse> response = authResponse.getBody();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("Success");
-
-        JwtResponse jwtResponse = response.getData();
-        String accessToken = jwtResponse.accessToken();
-        String refreshToken = jwtResponse.refreshToken();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        //User logs out
-        HttpEntity<LogoutRequest> logoutRequest = new HttpEntity<>(
-                new LogoutRequest(accessToken, refreshToken),
-                headers
-        );
-        ResponseEntity<ApiResponse<String>> logoutResponse = restTemplate.exchange(
-                "/api/auth/logout",
-                HttpMethod.POST,
-                logoutRequest,
-                new ParameterizedTypeReference<ApiResponse<String>>() {
-                }
-        );
-        assertThat(logoutResponse).isNotNull();
         assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        //User tries to log out again, error is expected
-        ResponseEntity<ApiResponse<String>> errorLogoutResponse = restTemplate.exchange(
-                "/api/auth/logout",
-                HttpMethod.POST,
-                logoutRequest,
-                new ParameterizedTypeReference<ApiResponse<String>>() {
-                }
+        // --- Try logout again (should fail) ---
+        var newCookies = extractCookies(logoutResponse);
+        headers = buildCookieHeaders(newCookies);
+
+        var errorLogoutResponse = restTemplate.exchange(
+                "/api/auth/logout", HttpMethod.POST,
+                new HttpEntity<>(headers),
+                new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
 
-        assertThat(errorLogoutResponse).isNotNull();
         assertThat(errorLogoutResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    void login_thenAccessTokenExpires_thenPetitionToProtectedPath_shouldReturn403() throws InterruptedException {
-        //User logs in
-        HttpEntity<LoginRequest> loginRequest = new HttpEntity<>(
-                new LoginRequest(TEST_USER, TEST_PASSWORD)
-        );
+    void login_thenAccessTokenExpires_thenRefresh_shouldWork() {
+        // --- Login user ---
+        var loginRequest = new LoginRequest(TEST_USER, TEST_PASSWORD);
+        var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
 
-        ResponseEntity<ApiResponse<JwtResponse>> authResponse = restTemplate.exchange(
-                "/api/auth/login",
-                HttpMethod.POST,
-                loginRequest,
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
-        );
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        ApiResponse<JwtResponse> response = authResponse.getBody();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("Success");
+        var cookies = extractCookies(loginResponse);
+        assertThat(cookies).hasSize(2);
 
-        JwtResponse jwtResponse = response.getData();
-        String accessToken = jwtResponse.accessToken();
-        String refreshToken = jwtResponse.refreshToken();
+        HttpHeaders headers = buildCookieHeaders(cookies);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
+        // --- Expire token ---
         when(clock.instant()).thenReturn(NOW.plus(TOKEN_EXPIRATION_TIME));
-        //User makes request to protected path
-        ResponseEntity<String> protectedResponse = restTemplate.exchange(
-                "/api/protected/hello",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
+
+        var protectedResponse = restTemplate.exchange(
+                "/api/protected/hello", HttpMethod.GET,
+                new HttpEntity<>(headers), String.class
         );
-        assertThat(protectedResponse).isNotNull();
         assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
-        //User refreshes token and tries again
-        HttpEntity<TokenRefreshRequest> refreshTokenRequest = new HttpEntity<>(
-                new TokenRefreshRequest(refreshToken)
-        );
-        ResponseEntity<ApiResponse<JwtResponse>> refreshTokenResponse = restTemplate.exchange(
-                "/api/auth/refresh",
-                HttpMethod.POST,
-                refreshTokenRequest,
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
+        // --- Refresh tokens ---
+        var refreshResponse = restTemplate.exchange(
+                "/api/auth/refresh", HttpMethod.POST,
+                new HttpEntity<>(headers),
+                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {}
         );
 
-        assertThat(refreshTokenResponse).isNotNull();
-        assertThat(refreshTokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        JwtResponse newAccessToken = refreshTokenResponse.getBody().getData();
-        headers.setBearerAuth(newAccessToken.accessToken());
+        var refreshedCookies = extractCookies(refreshResponse);
+        headers = buildCookieHeaders(refreshedCookies);
 
-        //Sets it back in order to work as expected
+        // --- Back to current time ---
         when(clock.instant()).thenReturn(NOW);
 
-        protectedResponse = restTemplate.exchange(
-                "/api/protected/hello",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
+        var finalProtectedResponse = restTemplate.exchange(
+                "/api/protected/hello", HttpMethod.GET,
+                new HttpEntity<>(headers), String.class
         );
-        assertThat(protectedResponse).isNotNull();
-        assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        assertThat(finalProtectedResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void login_badRequest_shouldReturn400() {
-        //User tries to log in without body
-        ResponseEntity<ApiResponse<JwtResponse>> authResponse = restTemplate.exchange(
-                "/api/auth/login",
-                HttpMethod.POST,
+        // --- Missing body ---
+        var badResponse = restTemplate.exchange(
+                "/api/auth/login", HttpMethod.POST,
                 new HttpEntity<>(new HttpHeaders()),
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
+                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {}
         );
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
-        ApiResponse<JwtResponse> response = authResponse.getBody();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("ERROR");
+        assertThat(badResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(badResponse.getBody()).isNotNull();
+        assertThat(badResponse.getBody().getStatus()).isEqualTo("ERROR");
 
-        //User tries to log in, but username is not found
-        HttpEntity<LoginRequest> request = new HttpEntity<>(
-                new LoginRequest("random", "password")
-        );
-        authResponse = restTemplate.exchange(
-                "/api/auth/login",
-                HttpMethod.POST,
-                request,
-                new ParameterizedTypeReference<ApiResponse<JwtResponse>>() {
-                }
-        );
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        response = authResponse.getBody();
-        assertThat(response).isNotNull();
-        assertThat(response.getStatus()).isEqualTo("ERROR");
+        // --- Wrong credentials ---
+        var wrongLogin = new LoginRequest("random", "password");
+        var wrongResponse = postForApiResponse("/api/auth/login", wrongLogin);
+
+        assertThat(wrongResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(wrongResponse.getBody()).isNotNull();
+        assertThat(wrongResponse.getBody().getStatus()).isEqualTo("ERROR");
     }
 
     @Test
-    void register_badRequest_shouldReturn_400() {
-        //User tries to register with no body
-        ResponseEntity<ApiResponse<String>> registerResponse = restTemplate.exchange(
-                "/api/auth/register",
-                HttpMethod.POST,
+    void register_badRequest_shouldReturn400() {
+        // --- Missing body ---
+        var missingBodyResponse = restTemplate.exchange(
+                "/api/auth/register", HttpMethod.POST,
                 new HttpEntity<>(new HttpHeaders()),
-                new ParameterizedTypeReference<ApiResponse<String>>() {
-                }
+                new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
-        assertThat(registerResponse).isNotNull();
-        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        ApiResponse<String> body = registerResponse.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo("ERROR");
 
-        //user tries to register, but username and password are empty
-        HttpEntity<LoginRequest> request = new HttpEntity<>(
-                new LoginRequest("", "")
-        );
-        ResponseEntity<String> bodyRegisterResponse = restTemplate.exchange(
-                "/api/auth/register",
-                HttpMethod.POST,
-                request,
-                String.class
-        );
-        assertThat(bodyRegisterResponse).isNotNull();
-        assertThat(bodyRegisterResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-    }
+        assertThat(missingBodyResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(missingBodyResponse.getBody()).isNotNull();
+        assertThat(missingBodyResponse.getBody().getStatus()).isEqualTo("ERROR");
 
-    @AfterEach
-    void cleanUp() {
-        userRepo.findByUsername(USERNAME).ifPresent((user) -> {
-            userRepo.delete(user);
-        });
+        // --- Empty credentials ---
+        var emptyRequest = new LoginRequest("", "");
+        var emptyResponse = restTemplate.exchange(
+                "/api/auth/register", HttpMethod.POST,
+                new HttpEntity<>(emptyRequest), String.class
+        );
+
+        assertThat(emptyResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }
