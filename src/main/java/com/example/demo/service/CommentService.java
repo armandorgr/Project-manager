@@ -20,6 +20,10 @@ public class CommentService {
         return repository.save(comment);
     }
 
+    public Comment findCommentById(UUID commentId){
+        return this.repository.findById(commentId).orElseThrow();
+    }
+
     public void deleteComment(Comment comment){
         repository.delete(comment);
     }

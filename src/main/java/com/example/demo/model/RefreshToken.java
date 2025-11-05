@@ -17,7 +17,7 @@ public class RefreshToken {
     @Column(name = "expiry_date")
     private Instant expiryDate;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 

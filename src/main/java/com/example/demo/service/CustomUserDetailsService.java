@@ -20,21 +20,25 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepo;
 
     @Autowired
-    public CustomUserDetailsService(UserRepository userRepo){
+    public CustomUserDetailsService(UserRepository userRepo) {
         this.userRepo = userRepo;
     }
 
     public UserDetails registerUser(String username, String password, String email) throws DuplicateKeyException {
-        try{
+        try {
             return this.userRepo.save(new User(username, password, email));
-        }catch (DataIntegrityViolationException e){
+        } catch (DataIntegrityViolationException e) {
             this.logger.debug(String.format("Error de tipo %s", e.getClass().getName()));
             throw new DuplicateKeyException(String.format("User with email(%S) already exists", email));
         }
     }
 
-    public UserDetails loadUserById(UUID id){
+    public UserDetails loadUserById(UUID id) throws UsernameNotFoundException {
         return userRepo.findById(id).orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+    }
+
+    public UserDetails loadUserByEmailOrUsername(String term) {
+        return userRepo.findByUsernameOrEmail(term).orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
     }
 
     @Override

@@ -5,8 +5,10 @@ import com.example.demo.repository.ProjectRepository;
 import com.example.demo.repository.TaskRepository;
 import com.example.demo.repository.UserHasProjectRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Service
@@ -21,8 +23,8 @@ public class ProjectService {
         this.userHasProjectRepository = userHasProjectRepository;
     }
 
-    public UserHasProjects addUserToProject(User user, Project project, ProjectRole role) {
-        return userHasProjectRepository.save(new UserHasProjects(user, project, role));
+    public UserHasProjects addUserToProject(UserHasProjects relation) {
+        return userHasProjectRepository.save(relation);
     }
 
     //Deletes relation between user and project, and unassign the tasks they had.
@@ -38,23 +40,52 @@ public class ProjectService {
 
     }
 
+    public UserHasProjects getRelation(UserProjectId relationId){
+        return userHasProjectRepository.findById(relationId).orElseThrow();
+    }
+
     //Get all projects a user is part of
-    public List<Project> getAllProjectsByUser(User user) {
-        return userHasProjectRepository.findAllByUser(user)
-                .stream()
-                .map(UserHasProjects::getProject)
-                .toList();
+    public List<Project> getAllProjectsByUser(UUID userId) {
+        return userHasProjectRepository.findProjectsByUserId(userId);
+    }
+
+    public Project getOneById(UUID projectId)throws NoSuchElementException {
+        return this.repository.findById(projectId).orElseThrow();
+    }
+
+    public List<Project> getOneByQuery(String query, UUID userId){
+        return this.userHasProjectRepository.findProjectsByNameOrDescription(query, userId);
+    }
+
+    public List<Task> getAllTasksByProject(Project project){
+        return this.taskRepository.findAllByProject(project);
+    }
+
+    public Task saveTask(Task task){
+        return this.taskRepository.save(task);
+    }
+
+    public Task findTaskById(UUID taskId, UUID projectId){
+        return this.taskRepository.findByIdAndProjectId(taskId, projectId).orElseThrow();
     }
 
     public Project saveProject(Project project) {
         return repository.save(project);
     }
 
-    public void deleteProject(UUID projectId) {
-        repository.deleteById(projectId);
+    @Transactional
+    public void deleteProject(Project project) {
+        this.userHasProjectRepository.deleteAllByProjectId(project.getId());
+        this.repository.deleteById(project.getId());
     }
 
-    public void deleteProject(Project project) {
-        repository.delete(project);
+    @Transactional
+    public void deleteTask(Task task){
+        this.taskRepository.delete(task);
+    }
+
+    @Transactional
+    public void deleteTask(UUID taskId){
+        this.taskRepository.deleteById(taskId);
     }
 }

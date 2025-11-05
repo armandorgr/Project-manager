@@ -21,6 +21,9 @@ public class Comment {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @ManyToOne
     @JoinColumn(name = "author", referencedColumnName = "id")
     private User user;
@@ -29,11 +32,29 @@ public class Comment {
     @JoinColumn(name = "task_id", referencedColumnName = "id")
     private Task task;
 
-    public Comment(String content, Instant createdAt, User user, Task task) {
+    public Comment(String content, Instant createdAt, Instant updatedAt, User user, Task task) {
         this.content = content;
-        this.createdAt = createdAt;
+        this.createdAt = createdAt == null ? Instant.now() : createdAt;
+        this.updatedAt = updatedAt == null ? Instant.now() : updatedAt;
         this.user = user;
         this.task = task;
+    }
+
+    public Comment(){
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public UUID getId() {

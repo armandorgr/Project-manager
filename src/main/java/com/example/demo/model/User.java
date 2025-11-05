@@ -3,10 +3,8 @@ package com.example.demo.model;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+
+import java.util.*;
 
 @Entity
 @Table(name = "users")
@@ -24,8 +22,11 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RefreshToken> refreshTokens = new ArrayList<>();
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RefreshToken refreshTokens;
+
+    @OneToMany(mappedBy = "user")
+    private List<Task> assignedTasks = new ArrayList<>();
 
     public User() {
     }
@@ -51,6 +52,14 @@ public class User implements UserDetails {
         return this.username;
     }
 
+    public List<Task> getAssignedTasks() {
+        return assignedTasks;
+    }
+
+    public void setAssignedTasks(List<Task> assignedTasks) {
+        this.assignedTasks = assignedTasks;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -63,11 +72,11 @@ public class User implements UserDetails {
         this.password = password;
     }
 
-    public List<RefreshToken> getRefreshTokens() {
+    public RefreshToken getRefreshTokens() {
         return refreshTokens;
     }
 
-    public void setRefreshTokens(List<RefreshToken> refreshTokens) {
+    public void setRefreshTokens(RefreshToken refreshTokens) {
         this.refreshTokens = refreshTokens;
     }
 

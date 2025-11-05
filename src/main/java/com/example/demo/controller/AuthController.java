@@ -23,10 +23,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -70,7 +73,6 @@ public class AuthController {
             throw e;
         }
     }
-
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<String>> login(@RequestBody @Valid LoginRequest request, HttpServletResponse response) {
         this.logger.debug(String.format("Intento de inicio de sesión por usuario con username: %s", request.getUsername()));

@@ -29,11 +29,11 @@ public class Task {
     @Column(name = "due_date", nullable = false)
     private Instant dueDate;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id", referencedColumnName = "id")
     private User user;
 
-    @ManyToOne
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", referencedColumnName = "id")
     private Project project;
 
@@ -46,6 +46,7 @@ public class Task {
         this.user = user;
         this.project = project;
     }
+    public Task(){}
 
     public UUID getId() {
         return id;
