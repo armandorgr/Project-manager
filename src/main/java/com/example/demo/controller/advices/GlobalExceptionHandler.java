@@ -11,35 +11,38 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler{
+public class GlobalExceptionHandler {
     private final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<ApiResponse<String>> handleDuplicateKey(DuplicateKeyException ex){
+    public ResponseEntity<ApiResponse<String>> handleDuplicateKey(DuplicateKeyException ex) {
         ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiResponse<String>> handleUsernameNotFound(UsernameNotFoundException ex){
+    public ResponseEntity<ApiResponse<String>> handleUsernameNotFound(UsernameNotFoundException ex) {
         ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<String>> handleBadCredentials(BadCredentialsException ex){
+    public ResponseEntity<ApiResponse<String>> handleBadCredentials(BadCredentialsException ex) {
         ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex){
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -50,9 +53,21 @@ public class GlobalExceptionHandler{
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ApiResponse<String>> handleNoSuchElementException(NoSuchElementException ex) {
+        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<String>> handleMissingRequestParameter(MissingServletRequestParameterException ex) {
+        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<String>>  handleNoBodyException(HttpMessageNotReadableException ex){
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(),null, null);
+    public ResponseEntity<ApiResponse<String>> handleNoBodyException(HttpMessageNotReadableException ex) {
+        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

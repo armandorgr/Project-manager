@@ -40,7 +40,7 @@ public class CommentRepositoryTest {
         );
         entityManager.persist(newTask);
 
-        Comment newComment = new Comment("new comment", Instant.now(), user, newTask);
+        Comment newComment = new Comment("new comment", Instant.now(), Instant.now(), user, newTask);
         commentRepository.save(newComment);
 
         assertThat(entityManager.find(Comment.class, newComment.getId())).isEqualTo(newComment);
@@ -65,7 +65,7 @@ public class CommentRepositoryTest {
         );
         entityManager.persist(newTask);
 
-        Comment newComment = new Comment("new comment", Instant.now(), user, newTask);
+        Comment newComment = new Comment("new comment", Instant.now(), Instant.now() ,user, newTask);
         Comment insertedComment = entityManager.persist(newComment);
 
         String newContent = "Nuevo contenido";
@@ -95,7 +95,7 @@ public class CommentRepositoryTest {
         );
         entityManager.persist(newTask);
 
-        Comment newComment = new Comment("new comment", Instant.now(), user, newTask);
+        Comment newComment = new Comment("new comment", Instant.now(), Instant.now() ,user, newTask);
         Comment insertedComment = entityManager.persist(newComment);
 
         commentRepository.deleteById(insertedComment.getId());

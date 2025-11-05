@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -68,6 +69,15 @@ public class ProjectService {
     public Task findTaskById(UUID taskId, UUID projectId){
         return this.taskRepository.findByIdAndProjectId(taskId, projectId).orElseThrow();
     }
+
+    public Optional<UserHasProjects> getRelationSafe(UUID userId, UUID projectId) {
+        try {
+            return Optional.of(getRelation(new UserProjectId(userId, projectId)));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
 
     public Project saveProject(Project project) {
         return repository.save(project);

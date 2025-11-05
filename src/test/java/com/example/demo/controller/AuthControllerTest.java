@@ -96,12 +96,12 @@ class AuthControllerTest {
         var registerRequest = new RegisterRequest(USERNAME, EMAIL, "1234");
         var registerResponse = postForApiResponse("/api/auth/register", registerRequest);
 
-        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         var registerBody = registerResponse.getBody();
         assertThat(registerBody).isNotNull();
-        assertThat(registerBody.getStatus()).isEqualTo("Success");
-        assertThat(registerBody.getMessage()).isEqualTo("Usuario registrado correctamente");
+        assertThat(registerBody.getStatus()).isEqualTo("SUCCESS");
+        assertThat(registerBody.getMessage()).isEqualTo("User registered successfully");
 
         // --- Login user ---
         var loginRequest = new LoginRequest(USERNAME, "1234");
@@ -135,7 +135,7 @@ class AuthControllerTest {
 
         var body = loginResponse.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo("Success");
+        assertThat(body.getStatus()).isEqualTo("SUCCESS");
 
         // --- Logout user ---
         HttpHeaders headers = buildCookieHeaders(cookies);
@@ -145,7 +145,7 @@ class AuthControllerTest {
                 new ParameterizedTypeReference<ApiResponse<String>>() {}
         );
 
-        assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         // --- Try logout again (should fail) ---
         var newCookies = extractCookies(logoutResponse);
@@ -180,7 +180,7 @@ class AuthControllerTest {
                 "/api/protected/hello", HttpMethod.GET,
                 new HttpEntity<>(headers), String.class
         );
-        assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(protectedResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         // --- Refresh tokens ---
         var refreshResponse = restTemplate.exchange(

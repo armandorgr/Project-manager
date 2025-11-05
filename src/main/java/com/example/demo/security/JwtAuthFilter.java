@@ -68,35 +68,42 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String jwt = getJwtFromCookies(request);
-        this.logger.debug(request.getRequestURI());
+        logger.debug(request.getRequestURI());
+
+        // Si no hay token, dejar que otros filtros manejen la petición
         if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        try {
-            if (blacklistService.isTokenBlackListed(jwt)) {
-                throw new BlackListedTokenException("Token invalidado mediante logout, vuelva a iniciar sesión.");
-            }
-            final String username = jwtTokenUtil.extractUsername(jwt);
 
+        try {
+            // Verificar si el token está en la lista negra
+            if (blacklistService.isTokenBlackListed(jwt)) {
+                sendError(response, HttpStatus.UNAUTHORIZED, "TOKEN_REVOKED", "Token inválido por logout previo");
+                return; // corta aquí
+            }
+
+            // Extraer y validar usuario
+            final String username = jwtTokenUtil.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
                 if (jwtTokenUtil.validateToken(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+            // Continuar con la cadena normalmente
             filterChain.doFilter(request, response);
-        } catch (BlackListedTokenException ex) {
-            sendError(response, HttpStatus.UNAUTHORIZED, "TOKEN_REVOKED", "Token inválido por logout previo");
+
         } catch (ExpiredJwtException ex) {
             sendError(response, HttpStatus.FORBIDDEN, "TOKEN_EXPIRED", "Token caducado");
+        } catch (Exception ex) {
+            logger.error("Unhandled exception in JwtAuthFilter", ex);
+            filterChain.doFilter(request, response);
         }
     }
+
 }
