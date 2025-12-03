@@ -32,8 +32,6 @@ build/
 ### Config
 .env
 .env.test
-*.properties
-
 ### Generated data
 /postgres
 
