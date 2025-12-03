@@ -4,11 +4,11 @@ A robust backend REST API built with **Spring Boot** and **Java** for managing p
 
 ## 🚀 Key Features
 
-* [cite_start]**Secure Authentication:** User registration, login, and logout using JWT stored in HttpOnly cookies (prevents XSS attacks)[cite: 1, 3].
-* [cite_start]**Project Management:** Create projects, search by query, and manage details[cite: 1, 4].
-* [cite_start]**Team Collaboration:** Invite users to projects via username or email and manage memberships[cite: 2, 6].
-* [cite_start]**Task Tracking:** Create, update, delete, and assign tasks with priority levels and due dates[cite: 1, 11].
-* [cite_start]**Comments System:** Discuss tasks directly with comments[cite: 2].
+* **Secure Authentication:** User registration, login, and logout using JWT stored in HttpOnly cookies (prevents XSS attacks).
+* **Project Management:** Create projects, search by query, and manage details.
+* **Team Collaboration:** Invite users to projects via username or email and manage memberships.
+* **Task Tracking:** Create, update, delete, and assign tasks with priority levels and due dates.
+* **Comments System:** Discuss tasks directly with comments.
 * **Role-Based Access:** Distinction between Project Admins and standard Users.
 
 ## 🛠️ Tech Stack
@@ -17,7 +17,7 @@ A robust backend REST API built with **Spring Boot** and **Java** for managing p
 * **Framework:** Spring Boot
 * **Database:** PostgreSQL
 * **Containerization:** Docker & Docker Compose
-* [cite_start]**Documentation:** OpenAPI / Swagger [cite: 1]
+* **Documentation:** OpenAPI / Swagger
 
 ## 📋 Prerequisites
 
@@ -31,8 +31,8 @@ This project uses **Docker Compose** to orchestrate both the Spring Boot applica
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-name>
+    git clone https://github.com/armandorgr/Project-manager
+    cd Project-manager
     ```
 2. **Environment variables set up:**
 
@@ -58,7 +58,7 @@ DB_NAME= "DB NAME"
 
 ## 🔌 Main API Endpoints
 
-### [cite_start]Authentication [cite: 3]
+### Authentication
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Register a new user account |
@@ -66,7 +66,7 @@ DB_NAME= "DB NAME"
 | `POST` | `/api/auth/logout` | Logout (clears cookies & invalidates token) |
 | `POST` | `/api/auth/refresh` | Refresh access token |
 
-### [cite_start]Projects & Invitations [cite: 1, 2]
+### Projects & Invitations
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/project` | Get all projects for the current user |
@@ -74,7 +74,7 @@ DB_NAME= "DB NAME"
 | `POST` | `/api/project/{id}/invite` | Invite a user (by username/email) |
 | `POST` | `/api/project/{id}/join` | Accept or decline an invitation |
 
-### [cite_start]Tasks [cite: 1, 4]
+### Tasks
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/project/{pid}/tasks` | Get all tasks in a project |
@@ -82,7 +82,7 @@ DB_NAME= "DB NAME"
 | `PATCH` | `/api/project/{pid}/tasks/{tid}`| Update task status, priority, or assignee |
 | `GET` | `/api/tasks/assigned` | Get tasks assigned to the current user |
 
-### [cite_start]Comments [cite: 2]
+### Comments
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/api/project/{pid}/tasks/{tid}/comments` | Add a comment to a task |
@@ -91,4 +91,3 @@ DB_NAME= "DB NAME"
 ## 📄 License
 
 This project is open-source and available under the [MIT License](LICENSE).
-
