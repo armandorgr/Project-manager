@@ -1,12 +1,30 @@
-package com.example.demo.controller.requests;
+package com.example.demo.controller.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public class LoginRequest {
+public class RegisterRequest {
     @NotBlank(message = "Username is mandatory")
     private String username;
     @NotBlank(message = "Password is mandatory")
     private String password;
+    @Email
+    @NotBlank(message = "Email is mandatory")
+    private String email;
+
+    public RegisterRequest(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
     public String getUsername() {
         return username;
@@ -21,11 +39,6 @@ public class LoginRequest {
     }
 
     public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public LoginRequest(String username, String password) {
-        this.username = username;
         this.password = password;
     }
 }
