@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {UserMapper.class})
 public interface CommentMapper {
     CommentMapper INSTANCE = Mappers.getMapper(CommentMapper.class);
 
@@ -17,9 +17,8 @@ public interface CommentMapper {
     @Mapping(target = "task", ignore = true)
     Comment toEntity(CreateCommentDto dto);
 
-    @Mapping(target = "user", source = "user.id")
-    @Mapping(target = "task", source = "task.id")
+    @Mapping(target = "user", source = "user")
     CommentResponseDto toResponse(Comment comment);
 
-    Comment updateFromDto(CreateCommentDto dto, @MappingTarget Comment comment);
+    void updateFromDto(CreateCommentDto dto, @MappingTarget Comment comment);
 }

@@ -1,11 +1,14 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
-
+@Data
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
@@ -23,9 +26,11 @@ public class User implements UserDetails {
     private String password;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private RefreshToken refreshTokens;
 
     @OneToMany(mappedBy = "user")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private List<Task> assignedTasks = new ArrayList<>();
 
     public User() {
@@ -52,47 +57,4 @@ public class User implements UserDetails {
         return this.username;
     }
 
-    public List<Task> getAssignedTasks() {
-        return assignedTasks;
-    }
-
-    public void setAssignedTasks(List<Task> assignedTasks) {
-        this.assignedTasks = assignedTasks;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public RefreshToken getRefreshTokens() {
-        return refreshTokens;
-    }
-
-    public void setRefreshTokens(RefreshToken refreshTokens) {
-        this.refreshTokens = refreshTokens;
-    }
-
-    public String toString() {
-        return "User(id=" + this.getId() + ", username=" + this.getUsername() + ", password=" + this.getPassword() + ")";
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 }

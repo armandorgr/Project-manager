@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank;
         name = "LoginRequest",
         description = "DTO utilizado para realizar login con nombre de usuario y contraseña."
 )
-public record LoginRequest(
+public record LoginDto(
 
         @Schema(
                 description = "Nombre de usuario del usuario. Campo obligatorio.",

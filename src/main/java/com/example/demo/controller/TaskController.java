@@ -4,12 +4,17 @@ import com.example.demo.controller.anotations.projects.RequireProjectRole;
 import com.example.demo.controller.dto.CreateTaskDto;
 import com.example.demo.controller.dto.TaskResponseDto;
 import com.example.demo.controller.dto.UpdateTaskDto;
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.responses.Response;
 import com.example.demo.mapper.TaskMapper;
 import com.example.demo.model.*;
 import com.example.demo.service.CustomUserDetailsService;
 import com.example.demo.service.ProjectService;
 import com.example.demo.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +32,7 @@ import java.util.UUID;
  * Provides endpoints to create, update, delete and list tasks, as well as retrieve
  * tasks assigned to the current authenticated user.
  */
+@Tag(name = "Tasks", description = "Endpoints to manage tasks within projects")
 @RestController
 @RequestMapping("/api/project/{projectId}/tasks")
 public class TaskController {
@@ -55,8 +61,23 @@ public class TaskController {
      * @param authentication Authentication object containing the current user
      * @return ResponseEntity containing a list of tasks and HTTP 200 OK
      */
+    @Operation(
+            summary = "Get all tasks assigned to the authenticated user",
+            description = "Retrieves all tasks assigned to the currently authenticated user.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Assigned tasks retrieved successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized")
+            }
+    )
     @GetMapping("/assigned")
-    public ResponseEntity<ApiResponse<List<TaskResponseDto>>> getCurrentUserTasks(Authentication authentication) {
+    public ResponseEntity<Response<List<TaskResponseDto>>> getCurrentUserTasks(Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
         List<TaskResponseDto> assignedTasks = this.taskService
                 .getAllTasksByUser(currentUser)
@@ -64,8 +85,8 @@ public class TaskController {
                 .map(taskMapper::toResponse)
                 .toList();
 
-        ApiResponse<List<TaskResponseDto>> response =
-                new ApiResponse<>("SUCCESS", "Assigned tasks", assignedTasks, null);
+        Response<List<TaskResponseDto>> response =
+                new Response<>("SUCCESS", "Assigned tasks", assignedTasks, null);
         return ResponseEntity.ok(response);
     }
 
@@ -76,10 +97,26 @@ public class TaskController {
      * @param projectId UUID of the project where the task will be created
      * @return ResponseEntity containing created task and HTTP 201 CREATED
      */
+    @Operation(
+            summary = "Create a new task in a project",
+            description = "Creates a new task within the specified project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "Task created successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "404", description = "Project not found")
+            }
+    )
     @RequireProjectRole(ProjectRole.ADMIN)
     @Transactional
     @PostMapping
-    public ResponseEntity<ApiResponse<TaskResponseDto>> createTask(
+    public ResponseEntity<Response<TaskResponseDto>> createTask(
             @RequestBody @Valid CreateTaskDto dto,
             @PathVariable("projectId") UUID projectId
     ) {
@@ -93,8 +130,8 @@ public class TaskController {
         }
 
         Task savedTask = this.projectService.saveTask(task);
-        ApiResponse<TaskResponseDto> response =
-                new ApiResponse<>("SUCCESS", "Task created", taskMapper.toResponse(savedTask), null);
+        Response<TaskResponseDto> response =
+                new Response<>("SUCCESS", "Task created", taskMapper.toResponse(savedTask), null);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -106,12 +143,28 @@ public class TaskController {
      * @param dto       DTO containing updated task fields
      * @return ResponseEntity with updated task and HTTP 200 OK
      */
+    @Operation(
+            summary = "Update an existing task",
+            description = "Updates an existing task within a project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Task updated successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "404", description = "Task or project not found")
+            }
+    )
     @RequireProjectRole(ProjectRole.ADMIN)
     @Transactional
     @PatchMapping("/{taskId}")
-    public ResponseEntity<ApiResponse<TaskResponseDto>> updateTask(
-            @PathVariable("taskId") UUID taskId,
+    public ResponseEntity<Response<TaskResponseDto>> updateTask(
             @PathVariable("projectId") UUID projectId,
+            @PathVariable("taskId") UUID taskId,
             @RequestBody UpdateTaskDto dto
     ) {
         Task task = this.projectService.findTaskById(taskId, projectId);
@@ -125,8 +178,8 @@ public class TaskController {
         }
 
         Task updatedTask = this.projectService.saveTask(task);
-        ApiResponse<TaskResponseDto> response =
-                new ApiResponse<>("SUCCESS", "Task updated successfully", this.taskMapper.toResponse(updatedTask), null);
+        Response<TaskResponseDto> response =
+                new Response<>("SUCCESS", "Task updated successfully", this.taskMapper.toResponse(updatedTask), null);
         return ResponseEntity.ok(response);
     }
 
@@ -137,12 +190,21 @@ public class TaskController {
      * @param projectId UUID of the project containing the task
      * @return ResponseEntity with HTTP 204 NO_CONTENT if deleted successfully
      */
+    @Operation(
+            summary = "Delete a task from a project",
+            description = "Deletes a task from the specified project.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Task deleted successfully"),
+                    @ApiResponse(responseCode = "403", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "404", description = "Task or project not found")
+            }
+    )
     @RequireProjectRole(ProjectRole.ADMIN)
     @Transactional
     @DeleteMapping("/{taskId}")
     public ResponseEntity<Void> deleteTask(
-            @PathVariable("taskId") UUID taskId,
-            @PathVariable("projectId") UUID projectId
+            @PathVariable("projectId") UUID projectId,
+            @PathVariable("taskId") UUID taskId
     ) {
         Task task = this.projectService.findTaskById(taskId, projectId);
         this.projectService.deleteTask(taskId);
@@ -155,9 +217,25 @@ public class TaskController {
      * @param projectId UUID of the project
      * @return ResponseEntity containing the list of project tasks and HTTP 200 OK
      */
+    @Operation(
+            summary = "Get all tasks of a project",
+            description = "Retrieves all tasks belonging to a specific project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Project tasks retrieved successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "404", description = "Project not found")
+            }
+    )
     @RequireProjectRole(ProjectRole.USER)
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TaskResponseDto>>> getAllTasksByProject(
+    public ResponseEntity<Response<List<TaskResponseDto>>> getAllTasksByProject(
             @PathVariable("projectId") UUID projectId
     ) {
         Project project = this.projectService.getOneById(projectId);
@@ -167,8 +245,41 @@ public class TaskController {
                 .map(this.taskMapper::toResponse)
                 .toList();
 
-        ApiResponse<List<TaskResponseDto>> response =
-                new ApiResponse<>("SUCCESS", "Project tasks", tasks, null);
+        Response<List<TaskResponseDto>> response =
+                new Response<>("SUCCESS", "Project tasks", tasks, null);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Retrieves all tasks belonging to a specific project.
+     *
+     * @param id UUID of the task
+     * @return ResponseEntity containing the list of project tasks and HTTP 200 OK
+     */
+    @Operation(
+            summary = "Get one task of a project",
+            description = "Retrieves one tasks belonging to a specific project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Project task retrieved successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "404", description = "Task not found")
+            }
+    )
+    @RequireProjectRole(ProjectRole.USER)
+    @GetMapping("/{taskId}")
+    public ResponseEntity<Response<TaskResponseDto>> getById(
+            @PathVariable("projectId") UUID projectId,
+            @PathVariable("taskId") UUID id
+    ) {
+        Task task = this.taskService.findById(id);
+        Response<TaskResponseDto> response = new Response<>("SUCCESS", "Task found", this.taskMapper.toResponse(task), null);
         return ResponseEntity.ok(response);
     }
 }

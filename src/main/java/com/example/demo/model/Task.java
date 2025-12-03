@@ -1,8 +1,12 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -36,6 +40,10 @@ public class Task {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", referencedColumnName = "id")
     private Project project;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<Comment> comments = new ArrayList<>();
 
     public Task(String name, String description, TaskStatus status, TaskPriority priority, Instant dueDate, User user, Project project) {
         this.name = name;
@@ -106,5 +114,17 @@ public class Task {
 
     public void setProject(Project project) {
         this.project = project;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
     }
 }

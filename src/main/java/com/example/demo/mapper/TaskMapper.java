@@ -10,7 +10,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, uses = {UserMapper.class})
 public interface TaskMapper {
     TaskMapper INSTANCE = Mappers.getMapper(TaskMapper.class);
     Task toEntity(CreateTaskDto dto);
@@ -18,7 +18,7 @@ public interface TaskMapper {
     @Mapping(target = "user", ignore = true)
     void updateTaskFromDto(UpdateTaskDto dto, @MappingTarget Task task);
 
-    @Mapping(source = "user.id", target = "assignedUser")
+    @Mapping(source = "user", target = "assignedUser")
     @Mapping(source = "project.id", target = "project")
     TaskResponseDto toResponse(Task task);
 }

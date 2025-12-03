@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
         name = "ApiResponse",
         description = "Respuesta genérica de la API que incluye estado, mensaje, datos y metadatos opcionales."
 )
-public record ApiResponse<T>(
+public record Response<T>(
 
         @Schema(
                 description = "Estado de la respuesta (por ejemplo: SUCCESS o ERROR).",

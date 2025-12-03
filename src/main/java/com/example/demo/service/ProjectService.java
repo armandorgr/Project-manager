@@ -30,14 +30,7 @@ public class ProjectService {
 
     //Deletes relation between user and project, and unassign the tasks they had.
     public void kickUserFromProject(User user, Project project) {
-        userHasProjectRepository.findById(new UserProjectId(user.getId(), project.getId())).ifPresent((i) -> {
-            userHasProjectRepository.delete(i);
-            List<Task> assignedTasks = taskRepository.findAllByUserAndProject(user, project);
-            for (Task t : assignedTasks) {
-                t.setUser(null); //unassign user to tasks they had
-            }
-            taskRepository.saveAll(assignedTasks);
-        });
+        userHasProjectRepository.findById(new UserProjectId(user.getId(), project.getId())).ifPresent(userHasProjectRepository::delete);
 
     }
 
@@ -78,6 +71,9 @@ public class ProjectService {
         }
     }
 
+    public List<UserHasProjects> getMembers(UUID projectId){
+        return this.userHasProjectRepository.findAllByProject(projectId);
+    }
 
     public Project saveProject(Project project) {
         return repository.save(project);
@@ -97,5 +93,9 @@ public class ProjectService {
     @Transactional
     public void deleteTask(UUID taskId){
         this.taskRepository.deleteById(taskId);
+    }
+
+    public void deleteAll() {
+        repository.deleteAll();
     }
 }

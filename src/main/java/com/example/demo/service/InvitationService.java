@@ -32,4 +32,8 @@ public class InvitationService {
     public void deleteInvitation(UserHasUser invitation){
         repository.delete(invitation);
     }
+
+    public void deleteAll() {
+        repository.deleteAll();
+    }
 }

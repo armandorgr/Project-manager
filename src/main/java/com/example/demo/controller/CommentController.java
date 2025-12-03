@@ -3,7 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.controller.anotations.projects.RequireProjectRole;
 import com.example.demo.controller.dto.CommentResponseDto;
 import com.example.demo.controller.dto.CreateCommentDto;
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.responses.Response;
 import com.example.demo.mapper.CommentMapper;
 import com.example.demo.model.Comment;
 import com.example.demo.model.ProjectRole;
@@ -11,6 +11,11 @@ import com.example.demo.model.Task;
 import com.example.demo.model.User;
 import com.example.demo.service.CommentService;
 import com.example.demo.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +31,7 @@ import java.util.UUID;
  * REST controller responsible for managing comments associated with a specific task
  * within a project. Provides endpoints for listing, creating, updating and deleting comments.
  */
+@Tag(name = "Comments", description = "Endpoints for managing comments within tasks in a project")
 @RestController
 @RequestMapping("/api/project/{projectId}/tasks/{taskId}/comments")
 public class CommentController {
@@ -51,9 +57,27 @@ public class CommentController {
      * @param taskId    the UUID of the task
      * @return ResponseEntity containing a list of CommentResponseDto with HTTP 200 OK status
      */
+    @Operation(
+            summary = "Get all comments for a task",
+            description = "Retrieves all comments associated with a given task inside a project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of comments retrieved successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Task not found"
+                    )
+            }
+    )
     @RequireProjectRole(ProjectRole.USER)
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponseDto>>> getComments(
+    public ResponseEntity<Response<List<CommentResponseDto>>> getComments(
             @PathVariable("projectId") UUID projectId,
             @PathVariable("taskId") UUID taskId
     ) {
@@ -64,8 +88,8 @@ public class CommentController {
                 .map(this.commentMapper::toResponse)
                 .toList();
 
-        ApiResponse<List<CommentResponseDto>> response =
-                new ApiResponse<>("SUCCESS", "Comments found", comments, null);
+        Response<List<CommentResponseDto>> response =
+                new Response<>("SUCCESS", "Comments found", comments, null);
         return ResponseEntity.ok(response);
     }
 
@@ -79,8 +103,26 @@ public class CommentController {
      * @return ResponseEntity containing the updated comment and HTTP 200 OK status
      * @throws ResponseStatusException if the comment does not belong to the specified task
      */
+    @Operation(
+            summary = "Update an existing comment",
+            description = "Updates an existing comment belonging to a specific task.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Comment updated successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Comment does not belong to task or invalid request"
+                    )
+            }
+    )
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<CommentResponseDto>> update(
+    public ResponseEntity<Response<CommentResponseDto>> update(
             @RequestBody @Valid CreateCommentDto dto,
             @PathVariable("projectId") UUID projectId,
             @PathVariable("taskId") UUID taskId,
@@ -98,8 +140,8 @@ public class CommentController {
         comment.setUpdatedAt(Instant.now());
         Comment savedComment = this.commentService.saveComment(comment);
 
-        ApiResponse<CommentResponseDto> response =
-                new ApiResponse<>("SUCCESS", "Comment updated", this.commentMapper.toResponse(savedComment), null);
+        Response<CommentResponseDto> response =
+                new Response<>("SUCCESS", "Comment updated", this.commentMapper.toResponse(savedComment), null);
 
         return ResponseEntity.ok(response);
     }
@@ -113,9 +155,27 @@ public class CommentController {
      * @param auth      Authentication object representing the current user
      * @return ResponseEntity containing the created comment with HTTP 201 CREATED status
      */
+    @Operation(
+            summary = "Create a new comment",
+            description = "Creates a new comment for a given task within a project.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "Comment created successfully",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = Response.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request or task not found"
+                    )
+            }
+    )
     @RequireProjectRole(ProjectRole.USER)
     @PostMapping
-    public ResponseEntity<ApiResponse<CommentResponseDto>> create(
+    public ResponseEntity<Response<CommentResponseDto>> create(
             @RequestBody @Valid CreateCommentDto dto,
             @PathVariable("projectId") UUID projectId,
             @PathVariable("taskId") UUID taskId,
@@ -129,8 +189,8 @@ public class CommentController {
         comment.setTask(task);
 
         Comment savedComment = this.commentService.saveComment(comment);
-        ApiResponse<CommentResponseDto> response =
-                new ApiResponse<>("SUCCESS", "Comment created",
+        Response<CommentResponseDto> response =
+                new Response<>("SUCCESS", "Comment created",
                         this.commentMapper.toResponse(savedComment), null);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -146,6 +206,20 @@ public class CommentController {
      * @return ResponseEntity with HTTP 204 NO_CONTENT if deletion was successful
      * @throws ResponseStatusException if the comment does not belong to the specified task
      */
+    @Operation(
+            summary = "Delete a comment",
+            description = "Deletes a comment associated with a given task.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "204",
+                            description = "Comment deleted successfully"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Comment does not belong to task"
+                    )
+            }
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable("projectId") UUID projectId,

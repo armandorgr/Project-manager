@@ -1,6 +1,6 @@
 package com.example.demo.security;
 
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.responses.Response;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +18,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        ApiResponse<String> apiResponse = new ApiResponse<>("ERROR", authException.getMessage(), null, null);
+        Response<String> apiResponse = new Response<>("ERROR", authException.getMessage(), null, null);
         response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 }

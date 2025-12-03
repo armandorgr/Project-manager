@@ -1,6 +1,6 @@
 package com.example.demo.controller.advices;
 
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.responses.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,51 +24,57 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
     private final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Response<String>> handleResponseStatus(ResponseStatusException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
+        return new ResponseEntity<>(response, ex.getStatusCode());
+    }
+
     @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<ApiResponse<String>> handleDuplicateKey(DuplicateKeyException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
-        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    public ResponseEntity<Response<String>> handleDuplicateKey(DuplicateKeyException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiResponse<String>> handleUsernameNotFound(UsernameNotFoundException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+    public ResponseEntity<Response<String>> handleUsernameNotFound(UsernameNotFoundException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<String>> handleBadCredentials(BadCredentialsException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+    public ResponseEntity<Response<String>> handleBadCredentials(BadCredentialsException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Response<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        ApiResponse<Map<String, String>> response = new ApiResponse<>("ERROR", ex.getMessage(), errors, null);
+        Response<Map<String, String>> response = new Response<>("ERROR", ex.getMessage(), errors, null);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ApiResponse<String>> handleNoSuchElementException(NoSuchElementException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+    public ResponseEntity<Response<String>> handleNoSuchElementException(NoSuchElementException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponse<String>> handleMissingRequestParameter(MissingServletRequestParameterException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+    public ResponseEntity<Response<String>> handleMissingRequestParameter(MissingServletRequestParameterException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<String>> handleNoBodyException(HttpMessageNotReadableException ex) {
-        ApiResponse<String> response = new ApiResponse<>("ERROR", ex.getMessage(), null, null);
+    public ResponseEntity<Response<String>> handleNoBodyException(HttpMessageNotReadableException ex) {
+        Response<String> response = new Response<>("ERROR", ex.getMessage(), null, null);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

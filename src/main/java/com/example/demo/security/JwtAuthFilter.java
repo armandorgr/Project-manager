@@ -1,9 +1,8 @@
 package com.example.demo.security;
 
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.responses.Response;
 import com.example.demo.service.CustomUserDetailsService;
 import com.example.demo.service.TokenBlacklistService;
-import com.example.demo.controller.exception.BlackListedTokenException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
@@ -13,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
@@ -22,6 +22,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
@@ -31,11 +32,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenUtil jwtTokenUtil;
     private final CustomUserDetailsService userDetailsService;
     private final TokenBlacklistService blacklistService;
+    private final HandlerExceptionResolver resolver;
 
-    public JwtAuthFilter(JwtTokenUtil jwtTokenUtil, CustomUserDetailsService userDetailsService, TokenBlacklistService blacklistService) {
+    public JwtAuthFilter(JwtTokenUtil jwtTokenUtil, CustomUserDetailsService userDetailsService, TokenBlacklistService blacklistService, @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.jwtTokenUtil = jwtTokenUtil;
         this.userDetailsService = userDetailsService;
         this.blacklistService = blacklistService;
+        this.resolver = resolver;
     }
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -55,7 +58,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                            HttpStatus status,
                            String errorCode,
                            String errorMessage) throws IOException {
-        ApiResponse<String> errorResponse = new ApiResponse<>(String.valueOf(status.value()), errorMessage, null, null);
+        Response<String> errorResponse = new Response<>(String.valueOf(status.value()), errorMessage, null, null);
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
@@ -101,7 +104,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (ExpiredJwtException ex) {
             sendError(response, HttpStatus.FORBIDDEN, "TOKEN_EXPIRED", "Token caducado");
         } catch (Exception ex) {
-            logger.error("Unhandled exception in JwtAuthFilter", ex);
+            this.logger.debug(ex.getMessage());
+            this.resolver.resolveException(request,response, null, ex);
             filterChain.doFilter(request, response);
         }
     }

@@ -35,4 +35,8 @@ public class CommentService {
     public List<Comment> getAllCommentsByTask(Task task){
         return repository.findAllByTask(task);
     }
+
+    public void deleteAll() {
+        repository.deleteAll();
+    }
 }

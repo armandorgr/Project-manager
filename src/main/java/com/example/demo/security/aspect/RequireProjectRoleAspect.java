@@ -15,8 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.lang.reflect.Parameter;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -66,13 +64,17 @@ public class RequireProjectRoleAspect {
         }
     }
 
+    /**
+     * Busca el UUID del proyecto.
+     * Estrategia: Busca el primer argumento que sea de tipo UUID.
+     * Esto es más seguro que buscar por nombre de variable "projectId".
+     */
     private UUID extractProjectId(JoinPoint joinPoint) {
         Object[] args = joinPoint.getArgs();
-        Parameter[] parameters = ((MethodSignature) joinPoint.getSignature()).getMethod().getParameters();
 
-        for (int i = 0; i < parameters.length; i++) {
-            if (parameters[i].getName().equals("projectId") && args[i] instanceof UUID uuid) {
-                return uuid;
+        for (Object arg : args) {
+            if (arg instanceof UUID) {
+                return (UUID) arg;
             }
         }
         return null;

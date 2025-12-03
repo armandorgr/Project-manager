@@ -10,12 +10,17 @@ services:
     container_name: ProjectManager
     volumes:
       - ./postgres:/var/lib/postgresql/data
-  db-test:
-    image: postgres:14.3
-    restart: always
-    ports:
-      - "5436:5432"
+  backend:
+    build: .
+    container_name: project_backend
+    depends_on:
+      - db
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD_TEST}
-      POSTGRES_DB: ${DB_NAME_TEST}
-    container_name: ProjectManagerTest
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+    restart: always

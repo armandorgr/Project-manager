@@ -1,11 +1,16 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Data
 @Entity
 @Table(name = "projects")
 public class Project {
@@ -26,7 +31,16 @@ public class Project {
     private Instant endDate;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<Task> tasks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<UserHasProjects> projectUsers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private List<UserHasUser> invitations = new ArrayList<>();
 
     public Project(){}
 
@@ -35,53 +49,5 @@ public class Project {
         this.description = description;
         this.startDate = startDate;
         this.endDate = endDate;
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Instant getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Instant startDate) {
-        this.startDate = startDate;
-    }
-
-    public Instant getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Instant endDate) {
-        this.endDate = endDate;
-    }
-
-    public List<Task> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Task> tasks) {
-        this.tasks = tasks;
     }
 }

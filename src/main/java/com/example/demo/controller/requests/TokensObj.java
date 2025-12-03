@@ -1,7 +1,5 @@
 package com.example.demo.controller.requests;
 
-import lombok.Data;
-
 public class TokensObj {
     private String access;
     private String refresh;

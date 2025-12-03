@@ -1,8 +1,8 @@
 package com.example.demo.controller;
 
-import com.example.demo.controller.requests.LoginRequest;
-import com.example.demo.controller.requests.RegisterRequest;
-import com.example.demo.controller.responses.ApiResponse;
+import com.example.demo.controller.dto.LoginDto;
+import com.example.demo.controller.dto.RegisterDto;
+import com.example.demo.controller.responses.Response;
 import com.example.demo.repository.UserRepository;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.junit.jupiter.api.*;
@@ -64,7 +64,7 @@ class AuthControllerTest {
     // Helpers
     // ------------------------------------------------------
 
-    private <T> ResponseEntity<ApiResponse<T>> postForApiResponse(String url, Object body) {
+    private <T> ResponseEntity<Response<T>> postForApiResponse(String url, Object body) {
         return restTemplate.exchange(
                 url, HttpMethod.POST,
                 new HttpEntity<>(body),
@@ -93,18 +93,18 @@ class AuthControllerTest {
     @Test
     void register_validRequest_thenLogin_shouldReturn200() {
         // --- Register user ---
-        var registerRequest = new RegisterRequest(USERNAME, EMAIL, "1234");
+        var registerRequest = new RegisterDto(USERNAME, EMAIL, "1234");
         var registerResponse = postForApiResponse("/api/auth/register", registerRequest);
 
         assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         var registerBody = registerResponse.getBody();
         assertThat(registerBody).isNotNull();
-        assertThat(registerBody.getStatus()).isEqualTo("SUCCESS");
-        assertThat(registerBody.getMessage()).isEqualTo("User registered successfully");
+        assertThat(registerBody.status()).isEqualTo("SUCCESS");
+        assertThat(registerBody.message()).isEqualTo("User registered successfully");
 
         // --- Login user ---
-        var loginRequest = new LoginRequest(USERNAME, "1234");
+        var loginRequest = new LoginDto(USERNAME, "1234");
         var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
 
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -125,7 +125,7 @@ class AuthControllerTest {
     @Test
     void login_thenLogout_shouldReturn200() {
         // --- Login user ---
-        var loginRequest = new LoginRequest(TEST_USER, TEST_PASSWORD);
+        var loginRequest = new LoginDto(TEST_USER, TEST_PASSWORD);
         var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
 
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -135,14 +135,14 @@ class AuthControllerTest {
 
         var body = loginResponse.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.getStatus()).isEqualTo("SUCCESS");
+        assertThat(body.status()).isEqualTo("SUCCESS");
 
         // --- Logout user ---
         HttpHeaders headers = buildCookieHeaders(cookies);
         var logoutResponse = restTemplate.exchange(
                 "/api/auth/logout", HttpMethod.POST,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<ApiResponse<String>>() {}
+                new ParameterizedTypeReference<Response<String>>() {}
         );
 
         assertThat(logoutResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -154,7 +154,7 @@ class AuthControllerTest {
         var errorLogoutResponse = restTemplate.exchange(
                 "/api/auth/logout", HttpMethod.POST,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<ApiResponse<String>>() {}
+                new ParameterizedTypeReference<Response<String>>() {}
         );
 
         assertThat(errorLogoutResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -163,7 +163,7 @@ class AuthControllerTest {
     @Test
     void login_thenAccessTokenExpires_thenRefresh_shouldWork() {
         // --- Login user ---
-        var loginRequest = new LoginRequest(TEST_USER, TEST_PASSWORD);
+        var loginRequest = new LoginDto(TEST_USER, TEST_PASSWORD);
         var loginResponse = postForApiResponse("/api/auth/login", loginRequest);
 
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -186,7 +186,7 @@ class AuthControllerTest {
         var refreshResponse = restTemplate.exchange(
                 "/api/auth/refresh", HttpMethod.POST,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<ApiResponse<String>>() {}
+                new ParameterizedTypeReference<Response<String>>() {}
         );
 
         assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -211,20 +211,20 @@ class AuthControllerTest {
         var badResponse = restTemplate.exchange(
                 "/api/auth/login", HttpMethod.POST,
                 new HttpEntity<>(new HttpHeaders()),
-                new ParameterizedTypeReference<ApiResponse<String>>() {}
+                new ParameterizedTypeReference<Response<String>>() {}
         );
 
         assertThat(badResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(badResponse.getBody()).isNotNull();
-        assertThat(badResponse.getBody().getStatus()).isEqualTo("ERROR");
+        assertThat(badResponse.getBody().status()).isEqualTo("ERROR");
 
         // --- Wrong credentials ---
-        var wrongLogin = new LoginRequest("random", "password");
+        var wrongLogin = new LoginDto("random", "password");
         var wrongResponse = postForApiResponse("/api/auth/login", wrongLogin);
 
         assertThat(wrongResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(wrongResponse.getBody()).isNotNull();
-        assertThat(wrongResponse.getBody().getStatus()).isEqualTo("ERROR");
+        assertThat(wrongResponse.getBody().status()).isEqualTo("ERROR");
     }
 
     @Test
@@ -233,15 +233,15 @@ class AuthControllerTest {
         var missingBodyResponse = restTemplate.exchange(
                 "/api/auth/register", HttpMethod.POST,
                 new HttpEntity<>(new HttpHeaders()),
-                new ParameterizedTypeReference<ApiResponse<String>>() {}
+                new ParameterizedTypeReference<Response<String>>() {}
         );
 
         assertThat(missingBodyResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(missingBodyResponse.getBody()).isNotNull();
-        assertThat(missingBodyResponse.getBody().getStatus()).isEqualTo("ERROR");
+        assertThat(missingBodyResponse.getBody().status()).isEqualTo("ERROR");
 
         // --- Empty credentials ---
-        var emptyRequest = new LoginRequest("", "");
+        var emptyRequest = new LoginDto("", "");
         var emptyResponse = restTemplate.exchange(
                 "/api/auth/register", HttpMethod.POST,
                 new HttpEntity<>(emptyRequest), String.class
