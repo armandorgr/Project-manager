@@ -29,7 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -322,20 +324,22 @@ public class AuthController {
      * @param revoke       If true, cookies will be deleted (maxAge=0)
      */
     private void addAuthCookies(HttpServletResponse response, String accessToken, String refreshToken, Boolean revoke) {
-        Cookie accessCookie = new Cookie("access_token", accessToken);
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(false); // TODO: set true in production
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(revoke ? 0 : (int) (accessTokenExpiration / 1000));
-
-        Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(false); // TODO: set true in production
-        refreshCookie.setPath("/api/auth/refresh");
-        refreshCookie.setMaxAge(revoke ? 0 : (int) (refreshTokenExpiration / 1000));
-
-        response.addCookie(accessCookie);
-        response.addCookie(refreshCookie);
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", revoke ? "" : accessToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(revoke ? 0 : (accessTokenExpiration / 1000))
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", revoke ? "" : refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/api/auth/refresh")
+                .maxAge(revoke ? 0 : (refreshTokenExpiration / 1000))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 }
 
