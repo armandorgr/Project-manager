@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +49,7 @@ public class ProjectsController {
     private final CustomUserDetailsService usersService;
     private final InvitationService invitationService;
     private final UserMapper userMapper;
+    private final Logger logger = LoggerFactory.getLogger(ProjectsController.class);
 
     public ProjectsController(
             ProjectMapper projectMapper,
@@ -363,7 +366,7 @@ public class ProjectsController {
      * Creates a new project and assigns the authenticated user as ADMIN.
      *
      * @param dto            DTO containing new project data
-     * @param authentication current authenticated user
+     * @param currentUser current authenticated user
      * @return ResponseEntity with created project and HTTP 201 CREATED
      */
     @Operation(
@@ -385,16 +388,14 @@ public class ProjectsController {
     @PostMapping
     public ResponseEntity<Response<ProjectResponseDto>> create(
             @RequestBody @Valid CreateProjectDto dto,
-            Authentication authentication
+            @AuthenticationPrincipal User currentUser
     ) {
-        User currentUser = (User) authentication.getPrincipal();
+        this.logger.debug(dto.name());
         Project project = projectMapper.toEntity(dto);
         project.setStartDate(Instant.now());
         Project saved = this.projectService.saveProject(project);
-
-        this.projectService.addUserToProject(new UserHasProjects(currentUser, saved, ProjectRole.ADMIN));
-
+        UserHasProjects relation = this.projectService.addUserToProject(new UserHasProjects(currentUser, saved, ProjectRole.ADMIN));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new Response<>("SUCCESS", "Project created", this.projectMapper.toResponse(saved), null));
+                .body(new Response<>("SUCCESS", "Project created", this.projectMapper.toResponse(relation), null));
     }
 }

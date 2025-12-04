@@ -36,7 +36,7 @@ public record CreateProjectDto(
                         requiredMode = RequiredMode.REQUIRED
                 )
         @NotNull
-        @NotBlank Instant startDate,
+        Instant startDate,
 
         @Schema(
                 description = "Fecha de fin del proyecto. (Opcional)"
